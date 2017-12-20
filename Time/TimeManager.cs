@@ -12,8 +12,6 @@ namespace MM.Utils
     public enum eTimeGroup
     {
         common,
-        map,
-        map_ui,
     }
 
     /// <summary>
