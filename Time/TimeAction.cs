@@ -9,6 +9,7 @@ namespace MM.Utils
     {
         running,
         paused,
+        interrupted,
         finished
     }
 
@@ -19,8 +20,16 @@ namespace MM.Utils
     /// </summary>
     public class TimeAction
     {
-        private Action<float> _update_callback;
-        private Action _end_callback;
+        /// <summary>
+        /// Action to be called when TimeAction is updated.
+        /// Given parameters: updated TimeAction and status ratio value.
+        /// </summary>
+        private Action<TimeAction, float> _update_callback;
+        /// <summary>
+        /// Action called when TimeAction is over.
+        /// Given parameters: ended TimeAction.
+        /// </summary>
+        private Action<TimeAction> _end_callback;
         private float _time_elapsed;
 
         public float start_time { get; private set; }
@@ -34,7 +43,7 @@ namespace MM.Utils
         /// <param name="duration">Duration of the action.</param>
         /// <param name="update_callback">Action to be called when the object is updated.</param>
         /// <param name="end_callback">Action to be called when the action is finished.</param>
-        public TimeAction(float duration, Action<float> update_callback = null, Action end_callback = null)
+        public TimeAction(float duration, Action<TimeAction, float> update_callback = null, Action<TimeAction> end_callback = null)
         {
             this.duration = duration;
             start_time = TimeManager.instance.game_time;
@@ -65,7 +74,7 @@ namespace MM.Utils
                 {
                     // call the update_callback action if needed.
                     if (_update_callback != null)
-                        _update_callback(ratio);
+                        _update_callback(this, ratio);
                 }
                 else
                 {
@@ -73,6 +82,12 @@ namespace MM.Utils
                 }
             }
             return status;
+        }
+
+        public void Reset()
+        {
+            _time_elapsed = 0.0f;
+            status = eTimeActionStatus.running;
         }
 
         /// <summary>
@@ -95,12 +110,14 @@ namespace MM.Utils
 
         /// <summary>
         /// Stop the TimeAction.
+        /// If the ratio value is not 1.0f (action has not finished by itself), status of the TimeAction will be set 
+        /// to `interrupted`. Otherwise, status of the TimeAction will be set to `finished`.
         /// </summary>
         public void Stop()
         {
             if (_end_callback != null)
-                _end_callback();
-            status = eTimeActionStatus.finished;
+                _end_callback(this);
+            status = ratio == 1.0f ? eTimeActionStatus.finished : eTimeActionStatus.interrupted;
         }
     }
 }

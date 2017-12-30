@@ -27,6 +27,7 @@ namespace MM.Utils
         /// TimeActions grouped by group type.
         /// </summary>
         private Dictionary<eTimeGroup, List<TimeAction>> _time_actions;
+        private Dictionary<eTimeGroup, List<TimeAction>> _next_actions;
         /// <summary>
         /// Game time: time since the Time Manager is running.
         /// </summary>
@@ -38,6 +39,7 @@ namespace MM.Utils
         {
             instance = this;
             _time_actions = new Dictionary<eTimeGroup, List<TimeAction>>();
+            _next_actions = new Dictionary<eTimeGroup, List<TimeAction>>();
         }
 
         /// <summary>
@@ -48,12 +50,12 @@ namespace MM.Utils
         public void AddAction(TimeAction new_action, eTimeGroup group = eTimeGroup.common)
         {
             // If group doesn't exist, create it.
-            if (_time_actions.ContainsKey(group) == false)
-                _time_actions.Add(group, new List<TimeAction>());
+            if (_next_actions.ContainsKey(group) == false)
+                _next_actions.Add(group, new List<TimeAction>());
 
             if (new_action != null)
             {
-                _time_actions[group].Add(new_action);
+                _next_actions[group].Add(new_action);
             }
             else
             {
@@ -110,6 +112,29 @@ namespace MM.Utils
             }
         }
 
+        private void AddNextActions()
+        {
+            if ( _next_actions.Count != 0 )
+            {
+                foreach ( KeyValuePair<eTimeGroup, List<TimeAction>> pair in _next_actions)
+                {
+                    List<TimeAction> actions = pair.Value;
+                    foreach (TimeAction action in actions)
+                    {
+                        if ( _time_actions.ContainsKey(pair.Key) == false )
+                        {
+                            _time_actions.Add(pair.Key, actions);
+                        }
+                        else
+                        {
+                            _time_actions[pair.Key].AddRange(actions);
+                        }
+                    }
+                }
+            }
+            _next_actions.Clear();
+        }
+
         /// <summary>
         /// MonoBehaviour.Update()
         /// </summary>
@@ -117,17 +142,23 @@ namespace MM.Utils
         {
             game_time += Time.deltaTime;
 
+            AddNextActions();
+
+
             List<TimeAction> finished_actions;
+            TimeAction current_timeaction;
             // Get TimeAction List for every TimeAction group
             foreach (KeyValuePair<eTimeGroup, List<TimeAction>> pair in _time_actions)
             {
                 finished_actions = new List<TimeAction>();
-                foreach (TimeAction ta in pair.Value)
+                IEnumerator<TimeAction> enumerator = pair.Value.GetEnumerator();
+                while (enumerator.MoveNext() == true)
                 {
+                    current_timeaction = enumerator.Current;
                     // Update every TimeAction
-                    if ( ta.Update(Time.deltaTime) == eTimeActionStatus.finished )
+                    if (current_timeaction.Update(Time.deltaTime) == eTimeActionStatus.finished)
                     {
-                        finished_actions.Add(ta);
+                        finished_actions.Add(current_timeaction);
                     }
                 }
 
