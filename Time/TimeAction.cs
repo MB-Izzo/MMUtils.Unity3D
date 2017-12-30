@@ -115,9 +115,9 @@ namespace MM.Utils
         /// </summary>
         public void Stop()
         {
+            status = ratio == 1.0f ? eTimeActionStatus.finished : eTimeActionStatus.interrupted;
             if (_end_callback != null)
                 _end_callback(this);
-            status = ratio == 1.0f ? eTimeActionStatus.finished : eTimeActionStatus.interrupted;
         }
     }
 }
